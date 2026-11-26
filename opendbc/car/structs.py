@@ -144,6 +144,14 @@ class CarControlSP:
   leadOne: 'LeadData' = field(default_factory=lambda: LeadData())
   leadTwo: 'LeadData' = field(default_factory=lambda: LeadData())
   intelligentCruiseButtonManagement: 'IntelligentCruiseButtonManagement' = field(default_factory=lambda: IntelligentCruiseButtonManagement())
+  jvePilot: 'CarControlSP.JvePilot' = field(default_factory=lambda: CarControlSP.JvePilot())
+
+  @auto_dataclass
+  class JvePilot:
+    enabled: bool = auto_field()
+    autoFollow: bool = auto_field()
+    desiredFollowBars: int = -1
+    accEco: int = auto_field()
 
   @auto_dataclass
   class Param:
@@ -166,3 +174,8 @@ class CarControlSP:
 @auto_dataclass
 class CarStateSP:
   speedLimit: float = auto_field()
+  jvePilot: 'CarStateSP.JvePilot' = field(default_factory=lambda: CarStateSP.JvePilot())
+
+  @auto_dataclass
+  class JvePilot:
+    followBars: int = auto_field()
