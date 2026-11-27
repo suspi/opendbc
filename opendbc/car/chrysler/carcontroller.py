@@ -87,7 +87,9 @@ class CarController(CarControllerBase, MadsCarController, CarControllerExt, Inte
         apply_torque = 0
       self.apply_torque_last = apply_torque
 
-      can_sends.append(chryslercan.create_lkas_command(self.packer, self.CP, int(apply_torque), lkas_control_bit))
+      wp_signal = bool(self.CP_SP.flags & ChryslerFlagsSP.JVEPILOT_WP_SIGNAL and self.CP_SP.flags & ChryslerFlagsSP.NO_MIN_STEERING_SPEED)
+      can_sends.append(chryslercan.create_lkas_command(self.packer, self.CP, int(apply_torque), lkas_control_bit,
+                                                       wp_signal=wp_signal, wp_active=CC.latActive))
 
     if self.frame % 10 == 0 and self.CP.carFingerprint not in (RAM_CARS | CUSW_CARS):
       can_sends.append(MadsCarController.create_lkas_heartbit(self.packer, CS.lkas_heartbit, self.mads))

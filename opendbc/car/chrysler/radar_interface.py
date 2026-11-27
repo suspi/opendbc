@@ -2,6 +2,7 @@
 from opendbc.can import CANParser
 from opendbc.car import Bus, structs
 from opendbc.car.interfaces import RadarInterfaceBase
+from opendbc.sunnypilot.car.chrysler.values_ext import ChryslerFlagsSP
 from opendbc.car.chrysler.values import DBC
 
 RADAR_MSGS_C = list(range(0x2c2, 0x2d4+2, 2))  # c_ messages 706,...,724
@@ -44,9 +45,12 @@ class RadarInterface(RadarInterfaceBase):
     self.rcp = _create_radar_can_parser(CP.carFingerprint)
     self.updated_messages = set()
     self.trigger_msg = LAST_MSG
+    # suspi: jvePilot "Vision only" and "Reverse radar X axis"
+    self.vision_only = bool(CP_SP.flags & ChryslerFlagsSP.JVEPILOT_VISION_ONLY)
+    self.y_rel_sign = -1 if CP_SP.flags & ChryslerFlagsSP.JVEPILOT_REVERSE_RADAR else 1
 
   def update(self, can_strings):
-    if self.rcp is None or self.CP.radarUnavailable:
+    if self.rcp is None or self.CP.radarUnavailable or self.vision_only:
       return super().update(None)
 
     vls = self.rcp.update(can_strings)
@@ -71,7 +75,7 @@ class RadarInterface(RadarInterfaceBase):
         self.pts[trackId].dRel = cpt['LONG_DIST']  # from front of car
         # our lat_dist is positive to the right in car's frame.
         # LAT_DIST is right-positive, yRel is left-positive
-        self.pts[trackId].yRel = -cpt['LAT_DIST']  # in car frame's y axis, left is positive
+        self.pts[trackId].yRel = -cpt['LAT_DIST'] * self.y_rel_sign  # in car frame's y axis, left is positive
       else:  # d_* message
         self.pts[trackId].vRel = cpt['REL_SPEED']
 
