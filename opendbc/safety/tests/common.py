@@ -972,6 +972,9 @@ class SafetyTest(SafetyTestBase):
             # No point in comparing different Tesla safety modes
             if 'Tesla' in attr and 'Tesla' in current_test:
               continue
+            # suspi: the jvePilot button classes are the Pacifica safety mode with an SP param bit, not another mode
+            if 'JvePilot' in attr or 'JvePilot' in current_test:
+              continue
             # No point in comparing to ALLOUTPUT which allows all messages
             if attr.startswith('TestAllOutput'):
               continue

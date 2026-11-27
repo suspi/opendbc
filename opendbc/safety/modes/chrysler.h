@@ -166,7 +166,7 @@ static bool chrysler_tx_hook(const CANPacket_t *msg) {
     const bool is_decel = msg->data[0] == 0x08U;
     const bool is_resume = msg->data[0] == 0x10U;
     bool allowed = is_cancel || ((is_resume || is_accel || is_decel) && controls_allowed);
-    if (chrysler_jvepilot_buttons && (chrysler_platform == CHRYSLER_PACIFICA) && !allowed) {
+    if (chrysler_jvepilot_buttons && (chrysler_platform == CHRYSLER_PACIFICA)) {
       // byte 0: bit 1 ACC_Distance_Dec, bit 2 ACC_Accel, bit 3 ACC_Decel, bit 7 ACC_OnOff; byte 1 bit 0 ACC_Distance_Inc
       // (byte 1 bits 4-7 are the counter). Engaged: one distance button, optionally with accel or decel.
       // While ACC main is off: ACC_OnOff alone (ACC Ready on Start can switch ACC on, never off).
@@ -178,7 +178,10 @@ static bool chrysler_tx_hook(const CANPacket_t *msg) {
       const bool one_speed_at_most = (b0 & 0x0CU) != 0x0CU;
       const bool one_distance = distance_dec != distance_inc;
       const bool is_acc_on_off = (b0 == 0x80U) && (b1_low == 0U) && !acc_main_on;
-      allowed = (only_known && one_speed_at_most && one_distance && controls_allowed) || is_acc_on_off;
+      // The stock check reads byte 0 only, so it would let a distance bit in byte 1 ride along with cancel or resume;
+      // with this bit on, a stock-allowed press must also leave byte 1 clear.
+      const bool stock_allowed = allowed && (b1_low == 0U);
+      allowed = stock_allowed || (only_known && one_speed_at_most && one_distance && controls_allowed) || is_acc_on_off;
     }
     if (!allowed) {
       tx = false;

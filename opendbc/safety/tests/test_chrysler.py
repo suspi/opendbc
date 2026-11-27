@@ -181,20 +181,22 @@ class TestChryslerJvePilotButtonSafety(TestChryslerSafety):
       engaged_only = controls_allowed and self.JVEPILOT
       self.assertEqual(engaged_only, self._tx(self._jve_button_msg(distance_inc=True)))
       self.assertEqual(engaged_only, self._tx(self._jve_button_msg(distance_dec=True)))
-      self.assertEqual(engaged_only, self._tx(self._jve_button_msg(distance_inc=True, accel=True)))
+      # stock checks byte 0 only, so accel + ACC_Distance_Inc (byte 1) already passes while engaged without the bit
+      self.assertEqual(controls_allowed, self._tx(self._jve_button_msg(distance_inc=True, accel=True)))
       self.assertEqual(engaged_only, self._tx(self._jve_button_msg(distance_dec=True, decel=True)))
       self.assertEqual(self.JVEPILOT, self._tx(self._jve_button_msg(acc_on_off=True)))  # ACC main off
       self.safety.set_acc_main_on(True)
       self.assertFalse(self._tx(self._jve_button_msg(acc_on_off=True)))  # never switches ACC off
       self.safety.set_acc_main_on(False)
-      # never: both distance buttons, distance with accel and decel, distance or ACC_OnOff with cancel/resume
+      # never: both distance buttons, distance with accel and decel, ACC_OnOff with anything
       for bad in ({"distance_inc": True, "distance_dec": True},
                   {"distance_inc": True, "accel": True, "decel": True},
                   {"distance_dec": True, "resume": True},
-                  {"distance_inc": True, "cancel": True},
                   {"acc_on_off": True, "accel": True},
                   {"acc_on_off": True, "distance_inc": True}):
         self.assertFalse(self._tx(self._jve_button_msg(**bad)), bad)
+      # with the bit on, cancel may no longer carry a distance press (stock allows it: it reads byte 0 only)
+      self.assertEqual(not self.JVEPILOT, self._tx(self._jve_button_msg(distance_inc=True, cancel=True)))
 
 
 class TestChryslerJvePilotButtonsOffSafety(TestChryslerJvePilotButtonSafety):
