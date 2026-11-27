@@ -9,7 +9,7 @@ from opendbc.car import structs
 from opendbc.car.can_definitions import CanData
 from opendbc.car.chrysler import chryslercan
 from opendbc.car.chrysler.values import RAM_CARS
-from opendbc.sunnypilot.car.chrysler.values_ext import ChryslerFlagsSP
+from opendbc.sunnypilot.car.chrysler.values_ext import ChryslerFlagsSP, ChryslerSafetyFlagsSP
 from opendbc.sunnypilot.car.intelligent_cruise_button_management_interface_base import IntelligentCruiseButtonManagementInterfaceBase
 
 ButtonType = structs.CarState.ButtonEvent.Type
@@ -35,11 +35,12 @@ class IntelligentCruiseButtonManagementInterface(IntelligentCruiseButtonManageme
     # suspi: jvePilot Auto Follow (distance buttons, only with ACC engaged) and ACC Ready on Start (ACC_OnOff in the
     # first 5 s, every 5th frame, until ACC is ready), sent in the same message as ICBM's press, as jvePilot did.
     jve = CC_SP.jvePilot
+    jve_buttons = bool(self.CP_SP.safetyParam & ChryslerSafetyFlagsSP.JVEPILOT_BUTTONS)  # what the panda will accept
     distance_inc = distance_dec = acc_on_off = False
-    if jve.enabled and CS.out.cruiseState.enabled and 0 <= jve.desiredFollowBars != CS.follow_bars:
+    if jve_buttons and jve.enabled and CS.out.cruiseState.enabled and 0 <= jve.desiredFollowBars != CS.follow_bars:
       distance_inc = jve.desiredFollowBars > CS.follow_bars
       distance_dec = not distance_inc
-    if self.CP_SP.flags & ChryslerFlagsSP.JVEPILOT_ACC_READY_ON_START and frame < 500 and frame % 5 == 0 \
+    if jve_buttons and self.CP_SP.flags & ChryslerFlagsSP.JVEPILOT_ACC_READY_ON_START and frame < 500 and frame % 5 == 0 \
        and not CS.out.cruiseState.available:
       acc_on_off = True
 

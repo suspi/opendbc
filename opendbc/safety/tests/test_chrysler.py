@@ -183,7 +183,10 @@ class TestChryslerJvePilotButtonSafety(TestChryslerSafety):
       self.assertEqual(engaged_only, self._tx(self._jve_button_msg(distance_dec=True)))
       self.assertEqual(engaged_only, self._tx(self._jve_button_msg(distance_inc=True, accel=True)))
       self.assertEqual(engaged_only, self._tx(self._jve_button_msg(distance_dec=True, decel=True)))
-      self.assertEqual(self.JVEPILOT, self._tx(self._jve_button_msg(acc_on_off=True)))
+      self.assertEqual(self.JVEPILOT, self._tx(self._jve_button_msg(acc_on_off=True)))  # ACC main off
+      self.safety.set_acc_main_on(True)
+      self.assertFalse(self._tx(self._jve_button_msg(acc_on_off=True)))  # never switches ACC off
+      self.safety.set_acc_main_on(False)
       # never: both distance buttons, distance with accel and decel, distance or ACC_OnOff with cancel/resume
       for bad in ({"distance_inc": True, "distance_dec": True},
                   {"distance_inc": True, "accel": True, "decel": True},
