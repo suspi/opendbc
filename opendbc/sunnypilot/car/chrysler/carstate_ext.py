@@ -10,7 +10,7 @@ from enum import StrEnum
 
 from opendbc.car import Bus, structs
 from opendbc.can.parser import CANParser
-from opendbc.car.chrysler.values import RAM_HD
+from opendbc.car.chrysler.values import RAM_CARS, RAM_HD
 from opendbc.sunnypilot.car.chrysler.values_ext import ChryslerFlagsSP, get_buttons
 
 
@@ -39,6 +39,10 @@ class CarStateExt:
         button_events.append(event)
       self.button_states[button.event_type] = state
     self.button_events = button_events
+
+    # suspi: ACC follow distance on the cluster, for jvePilot's personality and Auto Follow
+    cp_cruise = can_parsers[Bus.cam] if self.CP.carFingerprint in RAM_CARS else cp
+    ret_sp.jvePilot.followBars = int(cp_cruise.vl["DAS_4"]["ACC_DISTANCE_CONFIG_2"])
 
     if self.CP.carFingerprint in RAM_HD:
       ret.steeringAngleDeg = cp.vl["STEERING"]["STEERING_ANGLE"]
