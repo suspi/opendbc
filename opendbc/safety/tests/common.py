@@ -973,7 +973,8 @@ class SafetyTest(SafetyTestBase):
             if 'Tesla' in attr and 'Tesla' in current_test:
               continue
             # suspi: the jvePilot button classes are the Pacifica safety mode with an SP param bit, not another mode
-            if 'JvePilot' in attr or 'JvePilot' in current_test:
+            if {attr, current_test}.issubset({'TestChryslerSafety', 'TestChryslerJvePilotButtonSafety',
+                                              'TestChryslerJvePilotButtonsOffSafety'}):
               continue
             # No point in comparing to ALLOUTPUT which allows all messages
             if attr.startswith('TestAllOutput'):
