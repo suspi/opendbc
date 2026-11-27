@@ -25,8 +25,14 @@ def get_buttons(cruise_btns_msg="CRUISE_BUTTONS"):
 
 class ChryslerSafetyFlagsSP:
   RAM_HD_ALT_BUTTONS = 1
+  JVEPILOT_BUTTONS = 2  # suspi: allow ACC distance buttons (engaged) and ACC_OnOff (any time)
 
 
 class ChryslerFlagsSP(IntFlag):
   NO_MIN_STEERING_SPEED = 1
   RAM_HD_ALT_BUTTONS = 2
+  # suspi: jvePilot features, set from params at car init (openpilot/sunnypilot/selfdrive/car/interfaces.py)
+  JVEPILOT_ACC_READY_ON_START = 4
+  JVEPILOT_WP_SIGNAL = 8
+  JVEPILOT_VISION_ONLY = 16
+  JVEPILOT_REVERSE_RADAR = 32

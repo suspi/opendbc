@@ -57,6 +57,8 @@ typedef enum {
   CHRYSLER_PACIFICA,  // plus Jeep
 } ChryslerPlatform;
 static ChryslerPlatform chrysler_platform;
+// suspi: jvePilot Auto Follow and ACC Ready on Start (SP safety param bit 2, set only when the user turns them on)
+static bool chrysler_jvepilot_buttons = false;
 
 #define CHRYSLER_ADDR(name) ((uint32_t)((chrysler_platform == CHRYSLER_RAM_DT) ? CHRYSLER_RAM_DT_##name : \
                                         ((chrysler_platform == CHRYSLER_RAM_HD) ? CHRYSLER_RAM_HD_##name : CHRYSLER_##name)))
@@ -163,7 +165,21 @@ static bool chrysler_tx_hook(const CANPacket_t *msg) {
     const bool is_accel = msg->data[0] == 0x04U;
     const bool is_decel = msg->data[0] == 0x08U;
     const bool is_resume = msg->data[0] == 0x10U;
-    const bool allowed = is_cancel || ((is_resume || is_accel || is_decel) && controls_allowed);
+    bool allowed = is_cancel || ((is_resume || is_accel || is_decel) && controls_allowed);
+    if (chrysler_jvepilot_buttons && !allowed) {
+      // byte 0: bit 1 ACC_Distance_Dec, bit 2 ACC_Accel, bit 3 ACC_Decel, bit 7 ACC_OnOff; byte 1 bit 0 ACC_Distance_Inc
+      // (byte 1 bits 4-7 are the counter). Engaged: one distance button, optionally with accel or decel.
+      // Any time: ACC_OnOff alone (ACC Ready on Start).
+      const uint8_t b0 = msg->data[0];
+      const uint8_t b1_low = msg->data[1] & 0x0FU;
+      const bool distance_dec = (b0 & 0x02U) != 0U;
+      const bool distance_inc = (b1_low & 0x01U) != 0U;
+      const bool only_known = ((b0 & 0xF1U) == 0U) && ((b1_low & 0x0EU) == 0U);
+      const bool one_speed_at_most = (b0 & 0x0CU) != 0x0CU;
+      const bool one_distance = distance_dec != distance_inc;
+      const bool is_acc_on_off = (b0 == 0x80U) && (b1_low == 0U);
+      allowed = (only_known && one_speed_at_most && one_distance && controls_allowed) || is_acc_on_off;
+    }
     if (!allowed) {
       tx = false;
     }
@@ -173,6 +189,9 @@ static bool chrysler_tx_hook(const CANPacket_t *msg) {
 }
 
 static safety_config chrysler_init(uint16_t param) {
+  const uint16_t CHRYSLER_PARAM_SP_JVEPILOT_BUTTONS = 2U;
+  chrysler_jvepilot_buttons = GET_FLAG(current_safety_param_sp, CHRYSLER_PARAM_SP_JVEPILOT_BUTTONS);
+
   const uint32_t CHRYSLER_PARAM_RAM_DT = 1U;  // set for Ram DT platform
 
   static RxCheck chrysler_ram_dt_rx_checks[] = {

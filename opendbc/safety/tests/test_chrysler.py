@@ -159,5 +159,44 @@ class TestChryslerRamHDAltButtonSafety(TestChryslerRamHDSafety):
     return self.packer.make_can_msg_safety("CRUISE_BUTTONS_ALT", self.DAS_BUS, values)
 
 
+class TestChryslerJvePilotButtonSafety(TestChryslerSafety):
+  """suspi: jvePilot Auto Follow and ACC Ready on Start (SP safety param JVEPILOT_BUTTONS)."""
+  JVEPILOT = True
+
+  def setUp(self):
+    libsafety_py.libsafety.set_current_safety_param_sp(ChryslerSafetyFlagsSP.JVEPILOT_BUTTONS if self.JVEPILOT else 0)
+    super().setUp()
+
+  def tearDown(self):
+    libsafety_py.libsafety.set_current_safety_param_sp(0)
+
+  def _jve_button_msg(self, **buttons):
+    names = {"distance_inc": "ACC_Distance_Inc", "distance_dec": "ACC_Distance_Dec", "acc_on_off": "ACC_OnOff",
+             "accel": "ACC_Accel", "decel": "ACC_Decel", "cancel": "ACC_Cancel", "resume": "ACC_Resume"}
+    return self.packer.make_can_msg_safety("CRUISE_BUTTONS", self.DAS_BUS, {names[k]: v for k, v in buttons.items()})
+
+  def test_jvepilot_buttons(self):
+    for controls_allowed in (True, False):
+      self.safety.set_controls_allowed(controls_allowed)
+      engaged_only = controls_allowed and self.JVEPILOT
+      self.assertEqual(engaged_only, self._tx(self._jve_button_msg(distance_inc=True)))
+      self.assertEqual(engaged_only, self._tx(self._jve_button_msg(distance_dec=True)))
+      self.assertEqual(engaged_only, self._tx(self._jve_button_msg(distance_inc=True, accel=True)))
+      self.assertEqual(engaged_only, self._tx(self._jve_button_msg(distance_dec=True, decel=True)))
+      self.assertEqual(self.JVEPILOT, self._tx(self._jve_button_msg(acc_on_off=True)))
+      # never: both distance buttons, distance with accel and decel, distance or ACC_OnOff with cancel/resume
+      for bad in ({"distance_inc": True, "distance_dec": True},
+                  {"distance_inc": True, "accel": True, "decel": True},
+                  {"distance_dec": True, "resume": True},
+                  {"distance_inc": True, "cancel": True},
+                  {"acc_on_off": True, "accel": True},
+                  {"acc_on_off": True, "distance_inc": True}):
+        self.assertFalse(self._tx(self._jve_button_msg(**bad)), bad)
+
+
+class TestChryslerJvePilotButtonsOffSafety(TestChryslerJvePilotButtonSafety):
+  """Without the SP param bit the jvePilot buttons stay blocked, exactly as in sunnypilot."""
+  JVEPILOT = False
+
 if __name__ == "__main__":
   unittest.main()

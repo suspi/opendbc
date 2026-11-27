@@ -24,6 +24,7 @@ class CarStateExt:
     self.buttons = get_buttons(cruise_btns_msg)
 
     self.button_events = []
+    self.follow_bars = 0  # suspi: jvePilot Auto Follow
     self.button_states = {button.event_type: False for button in self.buttons}
 
   def update(self, ret: structs.CarState, ret_sp: structs.CarStateSP, can_parsers: dict[StrEnum, CANParser]):
@@ -42,7 +43,10 @@ class CarStateExt:
 
     # suspi: ACC follow distance on the cluster, for jvePilot's personality and Auto Follow
     cp_cruise = can_parsers[Bus.cam] if self.CP.carFingerprint in RAM_CARS else cp
-    ret_sp.jvePilot.followBars = int(cp_cruise.vl["DAS_4"]["ACC_DISTANCE_CONFIG_2"])
+    self.follow_bars = int(cp_cruise.vl["DAS_4"]["ACC_DISTANCE_CONFIG_2"])
+    ret_sp.jvePilot.followBars = self.follow_bars
+    btns = cp.vl[self.cruise_btns]
+    ret_sp.jvePilot.distanceButtonPressed = bool(btns.get("ACC_Distance_Inc", 0) or btns.get("ACC_Distance_Dec", 0))
 
     if self.CP.carFingerprint in RAM_HD:
       ret.steeringAngleDeg = cp.vl["STEERING"]["STEERING_ANGLE"]

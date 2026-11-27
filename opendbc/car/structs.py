@@ -179,3 +179,4 @@ class CarStateSP:
   @auto_dataclass
   class JvePilot:
     followBars: int = auto_field()
+    distanceButtonPressed: bool = auto_field()
